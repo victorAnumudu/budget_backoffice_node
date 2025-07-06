@@ -21,9 +21,9 @@ let userExistByEmail = (req, res, next) => {
             req.body.userID = info._id
             return next()
         }
-        res.status(401).json({status: -1, message: `user does not exist`, data:[]})
+        res.status(401).json({status: -1, message: `email/password is incorrect`, data:[]})
     }).catch(err => {
-        res.status(500).json({status: -1, message: `An error occurred`, data:[]})
+        res.status(500).json({status: -1, message: `An error occurred, try again`, data:[]})
     })
 }
 
@@ -35,7 +35,7 @@ let validUserToken = (req, res, next) => {
     }
     JWT.verify(token, process.env.JWT_SECRET, (err, decoded)=>{
         if(err){
-            return res.status(401).json({status: -1, message: `An error occurred`, data:[]})
+            return res.status(401).json({status: -1, message: `token error`, data:[]})
         }
         req.myLocals = {id:decoded.id}
         next()

@@ -51,7 +51,7 @@ const getAllUsers = async (req, res) => {
 }
 
 
-const getAllUserByID = (req, res) => {
+const getUserByID = (req, res) => {
     const passedID = req.myLocals.id
     // return if no id is present in params sent
     // if(!passedID){
@@ -59,11 +59,12 @@ const getAllUserByID = (req, res) => {
     // }
     usersModel.findById(passedID).then((info)=>{
         if(!info){
-            return res.status(404).json({status: -1, message: 'user not found', data:[]})
+            return res.status(404).json({status: -1, message: 'user not found', data:{}})
         }
-        res.status(200).json({status: 1, message: 'sucessful', data:[info]})
+        info.password = ''
+        res.status(200).json({status: 1, message: 'sucessful', user:info})
     }).catch((err)=>{
-        res.status(404).json({status: -1, message: err.message, data:[]})
+        res.status(404).json({status: -1, message: err.message, data:{}})
     })
 }
 
@@ -190,4 +191,4 @@ const updateUser = async (req, res) => { // update user
     
 }
 
-module.exports = {getAllUsers, getAllUserByID, addUser, loginUser, deleteUser, updateUser}
+module.exports = {getAllUsers, getUserByID, addUser, loginUser, deleteUser, updateUser}
