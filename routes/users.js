@@ -2,25 +2,36 @@ const express = require('express')
 
 const usersRoute = express.Router()
 
-const {getAllUsers, getUserByID, addUser, loginUser, deleteUser, updateUser} = require('../controllers/users/users')
+const {getAllUsers, getUserByID, addUser, addUserByAdmin, loginUser, verifyUser, deleteUser, updateUser} = require('../controllers/users/users')
 
-const {userDoesNotExistByEmail, userExistByEmail, validUserToken} = require('../middlewares/users/userExist') //middleware to check if user already exist
+const {userDoesNotExistByEmail, userExistByEmail, validUserToken, isAdmin, userIsNotVerified} = require('../middlewares/users/userExist') //middleware to check if user already exist
 
 
 // add a user or user registration
-usersRoute.post('/', userDoesNotExistByEmail, addUser)
+usersRoute.post('/add', userDoesNotExistByEmail, addUser)
+
+// add a user or user registration by an admin
+usersRoute.post('/add/admin', validUserToken, isAdmin, userDoesNotExistByEmail, addUserByAdmin)
 
 // login a user
 usersRoute.post('/login', userExistByEmail, loginUser)
 
+// verify user
+usersRoute.post('/verify', userExistByEmail, userIsNotVerified, verifyUser)
+
 // get user by id
 usersRoute.get('/profile', validUserToken, getUserByID)
 
+// get user by id
+usersRoute.get('/all', getAllUsers)
+
+// delete user by id
+usersRoute.post('/delete', validUserToken, isAdmin, deleteUser)
 
 
 
-// get all users in the data base
-usersRoute.get('/', getAllUsers)
+
+
 
 // delete a user
 usersRoute.delete('/:id', deleteUser)

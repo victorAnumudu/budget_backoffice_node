@@ -11,19 +11,20 @@ let usersSchema = new SCHEMA({
     },
     email: {
         type: String,
-        unique: [true, 'opps, duplicate records']
+        unique: [true, 'opps, duplicate records'],
+        required: [true, 'email is required']
     },
     password: {
         type: String,
-        required: [true, 'password is required']
+        // required: [true, 'password is required']
     },
     role: {
         type: String,
-        required: [true, 'password is required']
+        // required: [true, 'role is required']
     },
-    verified: {
+    status: {
         type: String,
-        default: 'pending'
+        default: 'pending',
     },
 })
 
@@ -37,5 +38,6 @@ module.exports = usersModel
 //     "lastname": `exam${Math.floor((Math.random() * 10))}`,
 //     "email": `test${Math.floor((Math.random() * 10))}@text.com`,
 //     "password":"1234",
-//     "role":"tpo",
+//     "role":"tpo", // user,tpo,admin,
+//     "status":"", // active,pending,disbaled
 // }

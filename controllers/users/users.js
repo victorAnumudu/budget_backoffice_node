@@ -24,74 +24,82 @@ let transporter = nodemailer.createTransport({
 
 const getAllUsers = async (req, res) => {
     try {
-        const users = await usersModel.find({})
-        res.status(200).json({status: 1, message: 'Successful', data:users})
-    } catch (error) {
-        res.status(404).json({status: -1, message: 'No active users', data:[]})
-    }
-    // var message = {
-    //     from: "anumudutesting@gmail.com",
-    //     to: "anumuduchukwuebuka@gmail.com",
-    //     subject: "Message title",
-    //     text: "Plaintext version of the message",
-    //     html: "<p>HTML version of the message</p>",
-    //   };
-    //   try {
-    //       let mail = await transporter.sendMail(message)
-    //       res.end(mail)
-    //   } catch (error) {
-    //     res.end(error)
-    //   }
-    // transporter.sendMail(message, (err, data)=>{
-    //     if(err){
-    //         res.end('error')
-    //     }
-    //     res.end('good')
-    // })
-}
+        let page = Number(req.query.page) >= 1 ? Number(req.query.page) : 1
+        let limit = (Number(req.query.limit) && Number(req.query.limit) >= 1) ? Number(req.query.limit) : Number(10);
+        let skip = page >= 2 ? (page * limit ) - limit : 0;
+        const usersFound = await usersModel.find({}).sort({ role: 1 }).lean().skip(skip).limit(limit)
+        let dataSent = {
+            users: usersFound.map(item => ({id: item._id.toString(), ...item})),
+            pagination: {
+            "current_page": 1,
+            "has_next": true,
+            "has_prev": false,
+            "limit": 20,
+            "total_count": usersFound.length,
+            "total_pages": 4032
+            }
+        } 
 
+        res.status(200).json({status: 1, message: 'Successful', data:dataSent})
+    } catch (error) {
+        res.status(500).json({status: -1, message: 'No active users', data:[]})
+    }
+}
 
 const getUserByID = (req, res) => {
-    const passedID = req.myLocals.id
+    const passedID = req.myLocals.uid
     // return if no id is present in params sent
-    // if(!passedID){
-    //     res.status(404).json({status: -1, message: 'No active users', data:[]})
-    // }
+    if(!passedID){
+        return res.status(404).json({status: -1, message: 'No active users', data:[]})
+    }
     usersModel.findById(passedID).then((info)=>{
         if(!info){
-            return res.status(404).json({status: -1, message: 'user not found', data:{}})
+            return res.status(404).json({status: -1, message: 'User not found', data:{}})
         }
         info.password = ''
-        res.status(200).json({status: 1, message: 'sucessful', user:info})
+        res.status(200).json({status: 1, message: 'Sucessful', user:info})
     }).catch((err)=>{
-        res.status(404).json({status: -1, message: err.message, data:{}})
+        res.status(500).json({status: -1, message: err.message, data:{}})
     })
 }
-
 
 // FUNCTION TO REGISTER NEW USER
 const addUser = (req, res) => {
     const {firstname, lastname, role, email, password} = req.body
-    if(!firstname || !lastname || !role || !email || !password){ // return if no id is present in params sent
-        return res.status(400).json({status: -1, message: `please enter all fields`, data:[]})
+    if(!firstname || !lastname || !role || !email || !password){ // return if no email, password and etc are present in params sent
+        return res.status(400).json({status: -1, message: `Please enter all fields`, data:[]})
     }
     bycrypt.hash(password, Number(process.env.BYCRYPT_SALT)).then((newpwd)=>{
         req.body.password = newpwd
         usersModel.create(req.body).then((info)=>{
             // info.password = ''
             delete info.password // remove password from the info sent to the client
-            res.status(201).json({status: 1, message: `user added successfully`, data:[info]})
+            res.status(201).json({status: 1, message: `User added successfully`, data:[info]})
         }).catch((err)=>{
-            res.status(500).json({status: -1, message: `unable to create user`, data:[]})
+            res.status(500).json({status: -1, message: `Unable to create user`, data:[]})
         })
     }).catch(err => {
-        res.status(500).json({status: -1, message: `something went wrong, try again`, data:[]})
+        res.status(500).json({status: -1, message: err.message, data:[]})
     })
 }
 
+// FUNCTION TO REGISTER NEW USER BY ADMIN
+const addUserByAdmin = (req, res) => {
+    const {firstname, lastname, email} = req.body
+    if(!firstname || !lastname|| !email){ // return if no email, password and etc are present in params sent
+        return res.status(400).json({status: -1, message: `Please enter all fields`, data:[]})
+    }
+    usersModel.create(req.body).then((info)=>{
+        res.status(201).json({status: 1, message: `User added successfully`, data:[info]})
+    }).catch((err)=>{
+        res.status(500).json({status: -1, message: `Unable to create user`, data:[]})
+    })
+}
+
+//FUNCTION TO LOGIN USER
 const loginUser = (req, res) => {
-    // let userID = req.userID
-    const {email, password, userID} = req.body
+    let userID = req.myLocals.uid
+    const {email, password, uid} = req.body
     if(!email || !password){ // return if no id is present in params sent
         return res.status(400).json({status: -1, message: `Email/Password not present`, data:[]})
     }
@@ -102,10 +110,10 @@ const loginUser = (req, res) => {
         // else check if the password matched
         bycrypt.compare(password, info.password, (err, data)=>{
             if(err){
-                return res.status(500).json({status: -1, message: `something went wrong, try again`, data:[]})
+                return res.status(500).json({status: -1, message: `An error occurred, try again`, data:[]})
             }
             if(!data){ // return incorrect password if password do not match
-                return res.status(401).json({status: -1, message: `email/password is incorrect`, data:[]})
+                return res.status(401).json({status: -1, message: `Email/password is incorrect`, data:[]})
             }
             // if password matches, generate JWT token and assign the user
             JWT.sign({id: info._id}, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token)=>{
@@ -117,12 +125,35 @@ const loginUser = (req, res) => {
             })
         })
     }).catch(err => {
-        res.status(500).json({status: -1, message: `server error, try again`, data:[]})
+        res.status(500).json({status: -1, message: `Server error, try again`, data:[]})
     })
 }
 
+// FUNCTION TO VERIFYUSER
+const verifyUser = (req, res) => {
+    const {email, password, uid} = req.body
+    if(!email || !password){ // return if no email, password and etc are present in params sent
+        return res.status(400).json({status: -1, message: `Please enter all fields`})
+    }
+    bycrypt.hash(password, Number(process.env.BYCRYPT_SALT)).then((newpwd)=>{
+        req.body = {password: newpwd}
+        console.log(req.body)
+        req.body.status = 'active'
+        usersModel.findByIdAndUpdate(uid, req.body, {new:true}).then((info)=>{
+            // info.password = ''
+            delete info.password // remove password from the info sent to the client
+            res.status(201).json({status: 1, message: `User verified successfully`})
+        }).catch((err)=>{
+            res.status(500).json({status: -1, message: `Unable to verify user`})
+        })
+    }).catch(err => {
+        res.status(500).json({status: -1, message: err.message, data:[]})
+    })
+}
+
+// FUNCTION TO DELETE USER
 const deleteUser = (req, res) => {
-    const passedID = req.params.id
+    const passedID = req.body.delete_uid
     if(!passedID){ // return if no id is present in params sent
         return res.status(400).json({status: -1, message: `User ID not passed`, data:[]})
     }
@@ -133,10 +164,15 @@ const deleteUser = (req, res) => {
         delete info.password// remove user password
         res.status(200).json({status: 1, message: `User Deleted`, data:[info]})
     }).catch(err => {
-        res.status(500).json({status: -1, message: `server error, try again`, data:[]})
+        res.status(500).json({status: -1, message: `Server error, try again`, data:[]})
     })
 }
 
+
+
+
+
+//FUNCTION TO UPDATE
 const updateUser = async (req, res) => { // update user
     let acceptedFields = ['password', 'name'] // array to hold list of values updatable
     const passedID = req.params.id
@@ -165,23 +201,23 @@ const updateUser = async (req, res) => { // update user
         if(fields.action == 'password'){ // for password update
             const passwordMatched = await bycrypt.compare(newDetails.password, userToUpdate.password)
             if(passwordMatched){
-                return res.status(404).json({status: -1, message: `old password cannot be used again, try with a new password`, data:[]})
+                return res.status(404).json({status: -1, message: `Old password cannot be used again, try with a new password`, data:[]})
             }
             // HASH THE NEW PASSWORD
             let newPwdHash = await bycrypt.hash(newDetails.password, Number(process.env.BYCRYPT_SALT))
             let userUpdated = await usersModel.findByIdAndUpdate(passedID, {password: newPwdHash}, {new: true})
             if(!userUpdated){ // return this if unable to update
-                return res.status(404).json({status: -1, message: `failed to update`, data:[]})
+                return res.status(404).json({status: -1, message: `Failed to update`, data:[]})
             }
-            res.status(200).json({status: 1, message: `password changed successfully`, data:[]})
+            res.status(200).json({status: 1, message: `Password changed successfully`, data:[]})
         }else{ // for non password update
             delete req.body.password // remove password from what the system will update
             const updatedFields = await usersModel.findByIdAndUpdate(passedID, req.body, {new:true})
             if(!updatedFields){
-                return res.status(404).json({status: -1, message: `failed to update`, data:[]})
+                return res.status(404).json({status: -1, message: `Failed to update`, data:[]})
             }
             updatedFields.password = '' // remove password from what the system sends to client
-            res.status(200).json({status: 1, message: `updated successfully`, data:[updatedFields]})
+            res.status(200).json({status: 1, message: `Updated successfully`, data:[updatedFields]})
         }
     } catch (error) {
         res.status(500).json({status: -1, message: `An error occurred`, data:[]})
@@ -191,4 +227,4 @@ const updateUser = async (req, res) => { // update user
     
 }
 
-module.exports = {getAllUsers, getUserByID, addUser, loginUser, deleteUser, updateUser}
+module.exports = {getAllUsers, getUserByID, addUser, addUserByAdmin, loginUser, verifyUser, deleteUser, updateUser}

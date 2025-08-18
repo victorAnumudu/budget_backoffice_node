@@ -25,7 +25,7 @@ const usersRoute = require('./routes/users');
 // const booksRoutes = require('./routes/books')
 
 const PORT = process.env.SERVER_PORT
-const DB_URL = process.env.DB_URL
+const DB_URL = process.env.NODE_ENV == 'development' ? process.env.DB_URL : process.env.MONGODB_DEV
 
 //connect to DATABASE
 mongoose.connect(DB_URL).then((info)=>{
