@@ -1,4 +1,5 @@
 const usersModel = require('../../models/users')
+const { default: getFilterParams, customPagination } = require('../../helpers/getFilterParams')
 
 const bycrypt = require('bcrypt')
 const JWT = require('jsonwebtoken')
@@ -23,21 +24,15 @@ let transporter = nodemailer.createTransport({
 
 
 const getAllUsers = async (req, res) => {
+    
     try {
-        let page = Number(req.query.page) >= 1 ? Number(req.query.page) : 1
-        let limit = (Number(req.query.limit) && Number(req.query.limit) >= 1) ? Number(req.query.limit) : Number(10);
-        let skip = page >= 2 ? (page * limit ) - limit : 0;
-        const usersFound = await usersModel.find({}).sort({ role: 1 }).lean().skip(skip).limit(limit)
+        const {page, limit, skip, filterWith} = getFilterParams(req.query, ['firstname', 'lastname', 'email', 'role', 'status'])
+
+        const totalDocuments = await usersModel.countDocuments();
+        const usersFound = await usersModel.find(filterWith).sort({ role: 1 }).lean().skip(skip).limit(limit)
         let dataSent = {
             users: usersFound.map(item => ({id: item._id.toString(), ...item})),
-            pagination: {
-            "current_page": 1,
-            "has_next": true,
-            "has_prev": false,
-            "limit": 20,
-            "total_count": usersFound.length,
-            "total_pages": 4032
-            }
+            pagination: customPagination({page, limit, totalDocuments})
         } 
 
         res.status(200).json({status: 1, message: 'Successful', data:dataSent})
@@ -131,13 +126,14 @@ const loginUser = (req, res) => {
 
 // FUNCTION TO VERIFYUSER
 const verifyUser = (req, res) => {
-    const {email, password, uid} = req.body
+    const {email, password} = req.body
+    const {uid} = req.myLocals
     if(!email || !password){ // return if no email, password and etc are present in params sent
         return res.status(400).json({status: -1, message: `Please enter all fields`})
     }
     bycrypt.hash(password, Number(process.env.BYCRYPT_SALT)).then((newpwd)=>{
         req.body = {password: newpwd}
-        console.log(req.body)
+        console.log(req.body, uid)
         req.body.status = 'active'
         usersModel.findByIdAndUpdate(uid, req.body, {new:true}).then((info)=>{
             // info.password = ''

@@ -18,12 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // ROUTES
 const usersRoute = require('./routes/users');
+const expensesRoute = require('./routes/expenses');
 
-//AUTHORS
-// const authorsRoutes = require('./routes/authors')
-
-//BOOKS ROUTE
-// const booksRoutes = require('./routes/books')
 
 const PORT = process.env.SERVER_PORT
 const DB_URL = process.env.NODE_ENV == 'development' ? process.env.DB_URL : process.env.MONGODB_DEV
@@ -47,6 +43,9 @@ app.get('/', (req, res)=>{
 
 // USERS ROUTES
 app.use('/users', usersRoute)
+
+// EXPENSES ROUTES
+app.use('/expenses', expensesRoute)
 
 // USERS ROUTES
 // app.use('/authors', authorsRoutes)
