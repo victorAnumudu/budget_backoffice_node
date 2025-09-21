@@ -19,6 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 // ROUTES
 const usersRoute = require('./routes/users');
 const expensesRoute = require('./routes/expenses');
+const mdasRoute = require('./routes/mdas');
+const economicItemsRoute = require('./routes/economicItems');
 
 
 const PORT = process.env.SERVER_PORT
@@ -47,11 +49,12 @@ app.use('/users', usersRoute)
 // EXPENSES ROUTES
 app.use('/expenses', expensesRoute)
 
-// USERS ROUTES
-// app.use('/authors', authorsRoutes)
+// MDAs ROUTES
+app.use('/mdas', mdasRoute)
 
-// USERS ROUTES
-// app.use('/books', booksRoutes)
+// ECONOMIC ITEMS ROUTES
+app.use('/economic-items', economicItemsRoute)
+
 
 
 

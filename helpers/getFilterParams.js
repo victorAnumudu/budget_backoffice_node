@@ -6,7 +6,7 @@ const getFilterParams = (reqQuery={}, neededFilters=[]) => {
 
     const filterWith = {}
 
-    if(!reqQuery || !neededFilters){
+    if(!reqQuery || !neededFilters.length){
         return {}
     }else{
         Object.entries(reqQuery).forEach(([key, value])=>{

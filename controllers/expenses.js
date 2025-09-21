@@ -1,9 +1,6 @@
 const expensesModel = require('../models/expenses')
 const { default: getFilterParams, customPagination } = require('../helpers/getFilterParams')
 
-const bycrypt = require('bcrypt')
-const JWT = require('jsonwebtoken')
-
 
 const getAllExpenses = async (req, res) => {
     
@@ -11,15 +8,15 @@ const getAllExpenses = async (req, res) => {
         const {page, limit, skip, filterWith} = getFilterParams(req.query, ['economic_code', 'beneficiary_name', 'beneficiary_bank'])
 
         const totalDocuments = await expensesModel.countDocuments();
-        const usersFound = await expensesModel.find(filterWith).sort({ date_captured: 1 }).lean().skip(skip).limit(limit)
+        const expensesFound = await expensesModel.find(filterWith).sort({ date_captured: 1 }).lean().skip(skip).limit(limit)
         let dataSent = {
-            pvs: usersFound.map(item => ({id: item._id.toString(), ...item})),
+            pvs: expensesFound.map(item => ({expense_uid: item._id.toString(), ...item})),
             pagination: customPagination({page, limit, totalDocuments})
         } 
 
         res.status(200).json({status: 1, message: 'Successful', data:dataSent})
     } catch (error) {
-        res.status(500).json({status: -1, message: 'No active users', data:[]})
+        res.status(500).json({status: -1, message: 'No pv found', data:[]})
     }
 }
 
@@ -49,22 +46,21 @@ const addExpense = (req, res) => {
     expensesModel.create(req.body).then((info)=>{
         res.status(201).json({status: 1, message: `PV added successfully`, data:[info]})
     }).catch((err)=>{
-        res.status(500).json({status: -1, message: `Unable to add pv`, data:[]})
+        res.status(500).json({status: -1, message: err.message, data:[]})
     })
 }
 
 // FUNCTION TO DELETE EXPENSE ITEM
 const deleteExpense = (req, res) => {
-    const passedID = req.body.delete_uid
+    const passedID = req.body.expense_uid
     if(!passedID){ // return if no id is present in params sent
-        return res.status(400).json({status: -1, message: `PV ID not passed`, data:[]})
+        return res.status(400).json({status: -1, message: `expense ID not passed`, data:[]})
     }
     expensesModel.findByIdAndDelete(passedID).then((info) => {
         if(!info){
-            return res.status(400).json({status: -1, message: `PV not found`, data:[]})
+            return res.status(400).json({status: -1, message: `expense not found`, data:[]})
         }
-        delete info.password// remove pv password
-        res.status(200).json({status: 1, message: `PV Deleted`, data:[info]})
+        res.status(200).json({status: 1, message: `expense Deleted`, data:[info]})
     }).catch(err => {
         res.status(500).json({status: -1, message: `Server error, try again`, data:[]})
     })
