@@ -46,7 +46,7 @@ const getAllEconomicItems = async (req, res) => {
     ]);
 
     const totalDocuments = await economicItemsModel.countDocuments();
-    const mdasFound = await economicItemsModel.aggregate([
+    const itemsFound = await economicItemsModel.aggregate([
       { $sort: { initial_budget: -1 } },
       { $match: { ...filterWith } },
       // { $match: { status: "active", age: { $gte: 18 } } },
@@ -61,8 +61,29 @@ const getAllEconomicItems = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "economicitems",
+          localField: "economic_code",
+          foreignField: "economic_code",
+          as: "economicitems",
+        },
+      },
+      {
         $addFields: {
           total_expenses: { $sum: "$expenses.gross_amount" },
+          current_balance: {
+            $subtract: [
+              {
+                $convert: {
+                  input: "$revised_budget",
+                  to: "double", // or "int" depending on your data
+                  onError: 0, // Provide a default numeric value (e.g., 0) in case of conversion error
+                  onNull: 0, // Provide a default numeric value for null inputs
+                },
+              },
+              { $sum: "$expenses.gross_amount" },
+            ],
+          },
         },
       },
       // Lookup mda_uid (assuming it's a ref to mdas collection)
@@ -85,12 +106,13 @@ const getAllEconomicItems = async (req, res) => {
       {
         $project: {
           expenses: 0, // optional: hide raw expenses array
+          economicitems: 0,
         },
       },
     ]);
 
     let dataSent = {
-      economic_items: mdasFound.map((item) => ({
+      economic_items: itemsFound.map((item) => ({
         economic_item_uid: item._id.toString(),
         ...item,
       })),
