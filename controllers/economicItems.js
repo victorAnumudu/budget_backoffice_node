@@ -37,6 +37,7 @@ const getAllEconomicItemsMain = async (req, res) => {
   }
 };
 
+// FUNCTION TO GET ALL ECONOMIC ITEMS
 const getAllEconomicItems = async (req, res) => {
   try {
     const { page, limit, skip, filterWith } = getFilterParams(req.query, [
@@ -117,6 +118,87 @@ const getAllEconomicItems = async (req, res) => {
         ...item,
       })),
       pagination: customPagination({ page, limit, totalDocuments }),
+    };
+
+    res.status(200).json({ status: 1, message: "Successful", data: dataSent });
+  } catch (error) {
+    res.status(500).json({ status: -1, message: error.message, data: [] });
+  }
+};
+
+// FUNCTION TO GET AN ECONOMIC ITEM
+const getAnEconomicItem = async (req, res) => {
+  try {
+    const { filterWith } = getFilterParams(req.query, [
+      "economic_code",
+    ]);
+
+    const itemsFound = await economicItemsModel.aggregate([
+      { $match: { ...filterWith } },
+      {
+        $lookup: {
+          from: "expenses",
+          localField: "economic_code",
+          foreignField: "economic_code",
+          as: "expenses",
+        },
+      },
+      {
+        $lookup: {
+          from: "economicitems",
+          localField: "economic_code",
+          foreignField: "economic_code",
+          as: "economicitems",
+        },
+      },
+      {
+        $addFields: {
+          total_expenses: { $sum: "$expenses.gross_amount" },
+          current_balance: {
+            $subtract: [
+              {
+                $convert: {
+                  input: "$revised_budget",
+                  to: "double", // or "int" depending on your data
+                  onError: 0, // Provide a default numeric value (e.g., 0) in case of conversion error
+                  onNull: 0, // Provide a default numeric value for null inputs
+                },
+              },
+              { $sum: "$expenses.gross_amount" },
+            ],
+          },
+        },
+      },
+      // Lookup mda_uid (assuming it's a ref to mdas collection)
+      {
+        $lookup: {
+          from: "mdas", // The referenced collection
+          localField: "mda_uid", // Field in economicItems
+          foreignField: "_id", // Field in mdas collection
+          as: "mda_info",
+        },
+      },
+
+      // Optionally convert array to object if it's a one-to-one reference
+      {
+        $unwind: {
+          path: "$mda_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          expenses: 0, // optional: hide raw expenses array
+          economicitems: 0,
+        },
+      },
+    ]);
+
+    let dataSent = {
+      economic_item: itemsFound.map((item) => ({
+        ei_uid: item._id.toString(),
+        ...item,
+      })),
     };
 
     res.status(200).json({ status: 1, message: "Successful", data: dataSent });
@@ -252,6 +334,7 @@ const updateEconomicItem = (req, res) => {
 
 module.exports = {
   getAllEconomicItems,
+  getAnEconomicItem,
   addEconomicItem,
   deleteEconomicItem,
   updateEconomicItem,

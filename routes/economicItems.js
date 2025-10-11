@@ -2,7 +2,7 @@ const express = require('express')
 
 const economicItemsRoute = express.Router()
 
-const {getAllEconomicItems, addEconomicItem, deleteEconomicItem, updateEconomicItem} = require('../controllers/economicItems')
+const {getAllEconomicItems, getAnEconomicItem, addEconomicItem, deleteEconomicItem, updateEconomicItem} = require('../controllers/economicItems')
 
 const {userDoesNotExistByEmail, userExistByEmail, validUserToken, isAdmin, userIsNotVerified} = require('../middlewares/users/userExist') //middleware to check if user already exist
 
@@ -10,8 +10,11 @@ const {userDoesNotExistByEmail, userExistByEmail, validUserToken, isAdmin, userI
 // add a economic item
 economicItemsRoute.post('/add', addEconomicItem)
 
-// get economic item by id
+// get all economic items
 economicItemsRoute.get('/all', getAllEconomicItems)
+
+// get an economic item with the economic code
+economicItemsRoute.get('/item', getAnEconomicItem)
 
 // delete economic item by id
 economicItemsRoute.post('/delete', deleteEconomicItem)

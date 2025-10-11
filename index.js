@@ -21,6 +21,7 @@ const usersRoute = require('./routes/users');
 const expensesRoute = require('./routes/expenses');
 const mdasRoute = require('./routes/mdas');
 const economicItemsRoute = require('./routes/economicItems');
+const dashboardRoute = require('./routes/dashboard');
 
 
 const PORT = process.env.SERVER_PORT
@@ -42,6 +43,8 @@ app.get('/', (req, res)=>{
     res.status(200).json({status: 1, message:'Sucessful'})
 })
 
+// DASHBOARD ROUTE
+app.use('/dashboard', dashboardRoute)
 
 // USERS ROUTES
 app.use('/users', usersRoute)
