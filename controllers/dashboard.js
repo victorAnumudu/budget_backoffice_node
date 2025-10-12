@@ -193,7 +193,7 @@ const getDashboardSummaryData = async (req, res) => {
         recurrent: {...recurrent_expenses[0] || { total_expenses: 0}, list_order: 2, name: 'Recurrent'},
         contingency: {...contingency[0] || { total_expenses: 0}, list_order: 3, name: 'contingency'},
         common_service: {...common_service[0] || { total_expenses: 0}, list_order: 4, name: 'Com. Service'},
-        revised_budget: {...revised_budget[0] || { total_expenses: 0}, list_order: 5, name: 'Revised Budget'},
+        // revised_budget: {...revised_budget[0] || { total_expenses: 0}, list_order: 5, name: 'Revised Budget'},
       };
       res.status(200).json({ status: 1, message: "Successful", data: dataSent });
   } catch (error) {
