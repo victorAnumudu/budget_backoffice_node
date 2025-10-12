@@ -98,16 +98,3 @@ module.exports = economicItemsModel
     // balance: 20000000,
 //     year: '2025',
 //   }
-
-
-// const sampleEconomicItem = {
-//     org_code: "20007001",
-//     economic_code: "20007001/22020101",
-//     budget_type: "recurrent",
-//     economic_description: "Local Travels and Transport (Training)",
-//     mda_uid: "Office of the Accountant General",
-//     initial_budget: 20550000,
-//     vired_frm: "",
-//     vired_to: "",
-//     supplementary_budget: "",
-// }

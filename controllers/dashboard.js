@@ -12,15 +12,16 @@ const getDashboardData = async (req, res) => {
       "start_date",
       "end_date",
     ]);
-
+    const startDate = "2025-01-01T00:00:00Z"
+    const endDate = "2025-12-30T23:59:59Z"
     const itemsFound = await expensesModel.aggregate([
         { $sort: { budget_type: -1 } },
         {
             $match: {
                 budget_type: { $in: ["recurrent", "capital"] },
                 date_captured: {
-                    $gte: new Date("2025-01-01T00:00:00Z"),
-                    $lte: new Date("2025-12-30T23:59:59Z")
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
                 }
             }
         },
@@ -126,20 +127,10 @@ const getDashboardDataSummaryReitred = async (req, res) => {
 
 const getDashboardSummaryData = async (req, res) => {
     try {
-      const { filterWith } = getFilterParams(req.query, [
-        "start_date",
-        "end_date",
-      ]);
-      const startDate = "2025-01-01T00:00:00Z"
-      const endDate = "2025-12-30T23:59:59Z"
-      const [recurrent_expenses, capital_expenses, contingency, contingency_budget] = await Promise.all([
+      const [recurrent_expenses, capital_expenses, contingency, common_service, revised_budget] = await Promise.all([
         expensesModel.aggregate([
           { $match: { 
               budget_type: 'recurrent',
-              date_captured: {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
-                }
             } 
           },
           {
@@ -154,10 +145,6 @@ const getDashboardSummaryData = async (req, res) => {
         expensesModel.aggregate([
           { $match: { 
               budget_type: 'capital',
-              date_captured: {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
-                }
             } 
           },
           {
@@ -170,7 +157,17 @@ const getDashboardSummaryData = async (req, res) => {
         ]),
 
         expensesModel.aggregate([
-          { $match: { economic_code: "36001001/22020101" } },
+          { $match: { economic_code: "38001001/23005700/38006000" } },
+          {
+            $group: {
+              _id: "$economic_code",
+              total_expenses: { $sum: "$gross_amount" },
+            }
+          },
+          { $project : {_id: 0}}
+        ]),
+        expensesModel.aggregate([
+          { $match: { economic_code: "38001001/22021013" } },
           {
             $group: {
               _id: "$economic_code",
@@ -180,11 +177,11 @@ const getDashboardSummaryData = async (req, res) => {
           { $project : {_id: 0}}
         ]),
         economicItemsModel.aggregate([
-          { $match: { economic_code: "36001001/22020101" } },
           {
             $group: {
-              _id: "$economic_code",
-              revised_budget: { $sum: "$revised_budget" },
+              _id: null,
+              // _id: "$initial_budget",
+              total_expenses: { $sum: "$revised_budget" },
             }
           },
           { $project : {_id: 0}}
@@ -195,7 +192,8 @@ const getDashboardSummaryData = async (req, res) => {
         capital: {...capital_expenses[0] || { total_expenses: 0}, list_order: 1, name: 'CapEx'},
         recurrent: {...recurrent_expenses[0] || { total_expenses: 0}, list_order: 2, name: 'Recurrent'},
         contingency: {...contingency[0] || { total_expenses: 0}, list_order: 3, name: 'contingency'},
-        common_service: {...contingency[0] || { total_expenses: 0}, list_order: 4, name: 'Com. Service'},
+        common_service: {...common_service[0] || { total_expenses: 0}, list_order: 4, name: 'Com. Service'},
+        revised_budget: {...revised_budget[0] || { total_expenses: 0}, list_order: 5, name: 'Revised Budget'},
       };
       res.status(200).json({ status: 1, message: "Successful", data: dataSent });
   } catch (error) {
@@ -205,7 +203,7 @@ const getDashboardSummaryData = async (req, res) => {
 
 const getDashboardRightPanelData = async (req, res) => {
   try {
-    const [recurrent_expenses, capital_expenses, recurrent_revised_budget, capital_revised_budget, contingency, contingency_budget] = await Promise.all([
+    const [recurrent_expenses, capital_expenses, recurrent_revised_budget, capital_revised_budget, contingency, contingency_budget, common_service, common_service_budget] = await Promise.all([
       expensesModel.aggregate([
         { $match: { budget_type: 'recurrent' } },
         {
@@ -249,7 +247,7 @@ const getDashboardRightPanelData = async (req, res) => {
         { $project : {_id: 0}}
       ]),
       expensesModel.aggregate([
-        { $match: { economic_code: "36001001/22020101" } },
+        { $match: { economic_code: "38001001/23005700/38006000" } },
         {
           $group: {
             _id: "$economic_code",
@@ -259,7 +257,27 @@ const getDashboardRightPanelData = async (req, res) => {
         { $project : {_id: 0}}
       ]),
       economicItemsModel.aggregate([
-        { $match: { economic_code: "36001001/22020101" } },
+        { $match: { economic_code: "38001001/23005700/38006000" } },
+        {
+          $group: {
+            _id: "$economic_code",
+            revised_budget: { $sum: "$revised_budget" },
+          }
+        },
+        { $project : {_id: 0}}
+      ]),
+      expensesModel.aggregate([
+        { $match: { economic_code: "38001001/22021013" } },
+        {
+          $group: {
+            _id: "$economic_code",
+            total_expenses: { $sum: "$gross_amount" },
+          }
+        },
+        { $project : {_id: 0}}
+      ]),
+      economicItemsModel.aggregate([
+        { $match: { economic_code: "38001001/22021013" } },
         {
           $group: {
             _id: "$economic_code",
@@ -274,7 +292,7 @@ const getDashboardRightPanelData = async (req, res) => {
       recurrent_expenses: {...recurrent_expenses[0] || { total_expenses: 0}, ...recurrent_revised_budget[0] || { revised_budget: 0}},
       capital_expenses: {...capital_expenses[0] || { total_expenses: 0}, ...capital_revised_budget[0] || { revised_budget: 0}},
       contingency: {...contingency[0] || { total_expenses: 0} , ...contingency_budget[0] || { revised_budget: 0}},
-      common_service: {...contingency[0] || { total_expenses: 0} , ...contingency_budget[0] || { revised_budget: 0}},
+      common_service: {...common_service[0] || { total_expenses: 0} , ...common_service_budget[0] || { revised_budget: 0}},
     };
     Object.keys(dataSent).forEach(item => {
       dataSent[item].balance = dataSent[item].revised_budget - dataSent[item].total_expenses
