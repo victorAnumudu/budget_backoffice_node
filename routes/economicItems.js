@@ -14,7 +14,7 @@ economicItemsRoute.post('/add', addEconomicItem)
 economicItemsRoute.get('/all', getAllEconomicItems)
 
 // get an economic item with the economic code
-economicItemsRoute.get('/item', getAnEconomicItem)
+economicItemsRoute.post('/item', getAnEconomicItem)
 
 // delete economic item by id
 economicItemsRoute.post('/delete', deleteEconomicItem)

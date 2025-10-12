@@ -126,10 +126,10 @@ const getAllEconomicItems = async (req, res) => {
   }
 };
 
-// FUNCTION TO GET AN ECONOMIC ITEM
+// FUNCTION TO GET AN ECONOMIC ITEM (POST REQUEST)
 const getAnEconomicItem = async (req, res) => {
   try {
-    const { filterWith } = getFilterParams(req.query, [
+    const { filterWith } = getFilterParams(req.body, [
       "economic_code",
     ]);
 
@@ -200,6 +200,10 @@ const getAnEconomicItem = async (req, res) => {
         ...item,
       })),
     };
+
+    if(!dataSent?.economic_item.length){
+      return res.status(401).json({ status: -1, message: 'Economic code not found' })
+    }
 
     res.status(200).json({ status: 1, message: "Successful", data: dataSent });
   } catch (error) {
