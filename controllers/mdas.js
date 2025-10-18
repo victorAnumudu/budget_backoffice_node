@@ -1,3 +1,5 @@
+const multer = require('multer');
+const xlsx = require('xlsx');
 const mdasModel = require('../models/mdas')
 const expensesModel = require('../models/expenses')
 
@@ -99,6 +101,36 @@ const deleteMDA = (req, res) => {
     })
 }
 
+// FUNCTION TO UPLOAD MDA FILES
+const uploadMDAFile = async (req, res) => {
+    try {
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = xlsx.utils.sheet_to_json(sheet);
+
+        // Optional: Validate or transform jsonData here
+        if(!jsonData.length){
+            return res.status(401).json({status: -1, message: `No Items in the file`, data:jsonData})
+        }
+
+        //TEST FILE TOO, TO SEE WHETHER THE FIELDS ALIGN BEFORE INSERTING --> test for '__EMPTY' property
+
+        // Insert into MongoDB
+        const operations = jsonData.map(mda => ({
+            updateOne: {
+                filter: { org_code: mda.org_code }, // Find by unique field (org_code)
+                update: { $set: mda },        // Update the fields
+                upsert: true                   // Insert if not found
+            }
+        }));
+        await mdasModel.bulkWrite(operations);
+        res.status(201).json({status: 1, message: `File uploaded`, data:jsonData})
+    } catch (error) {
+        res.status(500).json({status: -1, message: error.message})
+    }
+}
+
 
 
 const updateMDA = () => {
@@ -107,4 +139,4 @@ const updateMDA = () => {
 
 
 
-module.exports = {getAllMDAs, addMDA, deleteMDA, updateMDA}
+module.exports = {getAllMDAs, addMDA, uploadMDAFile, deleteMDA, updateMDA}
