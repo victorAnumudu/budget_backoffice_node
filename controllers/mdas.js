@@ -109,13 +109,25 @@ const uploadMDAFile = async (req, res) => {
         const sheet = workbook.Sheets[sheetName];
         const jsonData = xlsx.utils.sheet_to_json(sheet);
 
-        // Optional: Validate or transform jsonData here
+        // checks if the array (processed data) has at least one item
         if(!jsonData.length){
             return res.status(401).json({status: -1, message: `No Items in the file`, data:jsonData})
         }
 
         //TEST FILE TOO, TO SEE WHETHER THE FIELDS ALIGN BEFORE INSERTING --> test for '__EMPTY' property
+        // value fields include: --> org_code, mda_name, year
+        const allFieldExist = jsonData.map(item => {
+            if(Object.hasOwn(item, 'org_code') && Object.hasOwn(item, 'year') && Object.hasOwn(item, 'mda_name')){
+                return true
+            }else{
+                return false
+            }
+        })
 
+        // if all required fields are not present return an error
+        if(allFieldExist.includes(false)){
+            return res.status(401).json({status: -1, message: `org_code, mda_name and year are required for all record`, data:jsonData})
+        }
         // Insert into MongoDB
         const operations = jsonData.map(mda => ({
             updateOne: {
