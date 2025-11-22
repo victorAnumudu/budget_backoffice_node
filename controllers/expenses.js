@@ -38,6 +38,7 @@ const addExpense = (req, res) => {
         net_amount,
         budget_type,
         approval_authority,
+        warrant_status,
         captured_by
     } = req.body
     // if(!firstname || !lastname || !role || !email || !password){ // return if any of the fields are not returned, return failed response

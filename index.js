@@ -22,6 +22,7 @@ const expensesRoute = require('./routes/expenses');
 const mdasRoute = require('./routes/mdas');
 const economicItemsRoute = require('./routes/economicItems');
 const dashboardRoute = require('./routes/dashboard');
+const warrantsRoute = require('./routes/warrants');
 
 
 const PORT = process.env.SERVER_PORT
@@ -57,6 +58,9 @@ app.use('/mdas', mdasRoute)
 
 // ECONOMIC ITEMS ROUTES
 app.use('/economic-items', economicItemsRoute)
+
+// WARRANT ROUTES
+app.use('/warrants', warrantsRoute)
 
 
 

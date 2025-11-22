@@ -45,6 +45,10 @@ let expensesSchema = new SCHEMA({
     approval_authority: {
         type: String,
     },
+    warrant_status: {
+       type: Number, 
+       default: 0
+    },
     captured_by: {
         type: String,
         required: [true, 'email is required']
