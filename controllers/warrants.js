@@ -8,7 +8,7 @@ const { default: getFilterParams, customPagination } = require('../helpers/getFi
 const getAllWarrants = async (req, res) => {
     
     try {
-        const {page, limit, skip, filterWith} = getFilterParams(req.query, ['warrant_id'])
+        const {page, limit, skip, filterWith} = getFilterParams(req.query, ['_id'])
 
         const totalDocuments = await warrantsModel.countDocuments();
         const warrantsFound = await warrantsModel.find(filterWith).populate({path:'expenses_id'}).sort({ date_issued: 1 }).lean().skip(skip).limit(limit)

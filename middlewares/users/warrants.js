@@ -24,7 +24,7 @@ let warrantIsEmptyThenProceed = (req, res, next) => {
 
     warrantsModel.findById(warrant_id).then(info => {
         if(info?.expenses_id?.length){ //if expenses exists in expenses id array, then return
-           return res.status(401).json({status: -1, message: `you can't delete a warrant already generated.`})
+           return res.status(401).json({status: -1, message: `you can't delete a warrant with items.`})
         }
         next()
     }).catch(err => {
