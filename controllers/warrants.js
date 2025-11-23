@@ -26,25 +26,7 @@ const getAllWarrants = async (req, res) => {
 }
 
 
-// FUNCTION TO ADD NEW WARRANT
-// const addWarrant = (req, res) => {
-//     const {
-//         date_issued,
-//         issued_by,
-//         status,
-//         expenses_grouped
-//     } = req.body
-
-//     if(!expenses_grouped || !issued_by){ // return if any of the fields are not returned, return failed response
-//         return res.status(400).json({status: -1, message: `Please enter all fields`, data:[]})
-//     }
-//     warrantsModel.create(req.body).then((info)=>{
-//         res.status(201).json({status: 1, message: `Warrant created successfully, you can proceed to generate`, data:[info]})
-//     }).catch((err)=>{
-//         res.status(500).json({status: -1, message: err.message, data:[]})
-//     })
-// }
-
+// FUNCTION TO CREATE NEW WARRANT
 const addWarrant = async (req, res) => {
     const {
         date_issued,
@@ -73,6 +55,42 @@ const addWarrant = async (req, res) => {
 
       let dataSent = {...data};
       res.status(200).json({ status: 1, message: "Warrant created successfully, you can proceed to generate", dataSent });
+  } catch (error) {
+    res.status(500).json({ status: -1, message: error.message, data: [] });
+  }
+}
+
+// FUNCTION TO ADD MORE ITEMS TO EXISTING WARRANT
+const addMoreItemsToWarrant = async (req, res) => {
+    const {
+        warrant_id,
+        expenses_id
+    } = req.body
+    if(!expenses_id || !warrant_id){ // return if any of the fields are not returned, return failed response
+        return res.status(400).json({status: -1, message: `Please enter all fields`, data:[]})
+    }
+    const expensesIdToUpdate = expenses_id;
+
+    try {
+      const [data] = await Promise.all([
+        warrantsModel.updateOne(
+        { _id: warrant_id},
+        { 
+            $addToSet: { 
+            expenses_id: { $each: expenses_id } 
+            }
+        }
+        ),
+
+        expensesModel.updateMany({ _id: { $in: expensesIdToUpdate } },{ $set: { warrant_status: 1 } }).then(info => {
+            return {data: info}
+        }).catch((err)=>{
+            new Error(err.message)
+        })
+      ]);
+
+      let dataSent = {...data};
+      res.status(200).json({ status: 1, message: "Items added successfully, you can proceed to generate", dataSent });
   } catch (error) {
     res.status(500).json({ status: -1, message: error.message, data: [] });
   }
@@ -157,4 +175,4 @@ const updateWarrantStatus = (req, res) => {
 
 
 
-module.exports = {getAllWarrants, addWarrant, removeWarrantItems, deleteWarrant, updateWarrantStatus}
+module.exports = {getAllWarrants, addWarrant, addMoreItemsToWarrant, removeWarrantItems, deleteWarrant, updateWarrantStatus}

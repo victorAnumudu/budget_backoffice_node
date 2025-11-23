@@ -2,14 +2,17 @@ const express = require('express')
 
 const warrantsRoute = express.Router()
 
-const { addWarrant, getAllWarrants, removeWarrantItems, deleteWarrant, updateWarrantStatus } = require('../controllers/warrants')
+const { addWarrant, addMoreItemsToWarrant, getAllWarrants, removeWarrantItems, deleteWarrant, updateWarrantStatus } = require('../controllers/warrants')
 
 const {userDoesNotExistByEmail, userExistByEmail, validUserToken, isAdmin, userIsNotVerified} = require('../middlewares/users/userExist') //middleware to check if user already exist
 const { warrantNotGeneratedThenProceed, warrantIsEmptyThenProceed, warrantIsNotEmptyThenProceed } = require('../middlewares/users/warrants') // warrant middleware
 
 
-// add a warrant
+// create new a warrant
 warrantsRoute.post('/add', addWarrant)
+
+// add more items to existing warrant
+warrantsRoute.post('/add/more', warrantNotGeneratedThenProceed, addMoreItemsToWarrant)
 
 // get warrant by id
 warrantsRoute.get('/all', getAllWarrants)
