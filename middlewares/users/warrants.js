@@ -8,7 +8,7 @@ let warrantNotGeneratedThenProceed = (req, res, next) => {
 
     warrantsModel.findById(warrant_id).then(info => {
         if(info?.status){ //if generated ie. status is 1, then retuen
-           return res.status(401).json({status: -1, message: `you can't delete items from a warrant already generated.`})
+           return res.status(401).json({status: -1, message: `you can't perform action on warrant already generated.`})
         }
         next()
     }).catch(err => {
