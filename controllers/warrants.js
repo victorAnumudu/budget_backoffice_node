@@ -158,18 +158,27 @@ const updateWarrantStatus = (req, res) => {
         date_issued,
         issued_by,
         warrant_id,
+        warrant_number,
     } = req.body
-    if(!warrant_id || !issued_by){ // return if any of the fields are not returned, return failed response
+    if(!warrant_id || !issued_by || !warrant_number){ // return if any of the fields are not returned, return failed response
         return res.status(400).json({status: -1, message: `warrant not identified`, data:[]})
     }
 
-    warrantsModel.findByIdAndUpdate(warrant_id, {status: 1}, {new: true}).then(info => {
-        if(!info){
-            return res.status(400).json({status: -1, message: `warrant does not exist`, data:[]})
+    warrantsModel.findOne({warrant_number}).then(info =>{
+        if(info){
+            return res.status(400).json({status: -1, message: `warrant number already exist`, data:[]})
         }
-        res.status(200).json({status: 1, message: `warrant updated`, data:info})
-    }).catch((err)=>{
-        new Error(err.message)
+        warrantsModel.findByIdAndUpdate(warrant_id, {status: 1, warrant_number}, {new: true}).then(info => {
+            if(!info){
+                return res.status(400).json({status: -1, message: `warrant does not exist`, data:[]})
+            }
+            res.status(200).json({status: 1, message: `warrant updated`, data:info})
+        }).catch((err)=>{
+            new Error(err.message)
+        })
+    }).catch(err => {
+        console.log(err)
+        return res.status(500).json({status: -1, message: `unable to complete, try again`, data:[]})
     })
 }
 
