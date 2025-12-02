@@ -16,6 +16,10 @@ let warrantsSchema = new SCHEMA({
         type: Number,
         default: 0
     },
+    warrant_type: {
+        type: String,
+        default: ''
+    },
     warrant_number: {
         type: String,
         default: ''

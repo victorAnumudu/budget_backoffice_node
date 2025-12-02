@@ -32,6 +32,7 @@ const addWarrant = async (req, res) => {
         date_issued,
         issued_by,
         status,
+        warrant_type,
         expenses_id
     } = req.body
     if(!expenses_id || !issued_by){ // return if any of the fields are not returned, return failed response
