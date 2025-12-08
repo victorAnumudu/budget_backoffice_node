@@ -1,8 +1,9 @@
+const { default: mongoose } = require('mongoose');
 const expensesModel = require('../models/expenses')
 const economicItemsModel = require("../models/economicItems");
 const warrantsModel = require("../models/warrants");
 
-const { default: getFilterParams, customPagination } = require('../helpers/getFilterParams')
+const { default: getFilterParams, customPagination } = require('../helpers/getFilterParams');
 
 // FUNCTION TO GET ALL WARRANTS GIVEN
 const getAllWarrants = async (req, res) => {
@@ -117,7 +118,7 @@ const removeWarrantItems = async (req, res) => {
             new Error(err.message)
         }),
 
-        expensesModel.updateMany({ _id: { $in: expensesIdToDelete } },{ $set: { warrant_status: 0 } }).then(info => {
+        expensesModel.updateMany({ _id: { $in: expensesIdToDelete } },{ $set: { warrant_status: 0, warrant_number: '' } }).then(info => {
             return {data: info}
         }).catch((err)=>{
             new Error(err.message)
@@ -154,7 +155,7 @@ const deleteWarrant = (req, res) => {
 
 
 // FUNCTION TO UPDATE WARRANT STATUS
-const updateWarrantStatus = (req, res) => {
+const updateWarrantStatus = async (req, res) => {
     const {
         date_issued,
         issued_by,
@@ -165,22 +166,59 @@ const updateWarrantStatus = (req, res) => {
         return res.status(400).json({status: -1, message: `warrant not identified`, data:[]})
     }
 
-    warrantsModel.findOne({warrant_number}).then(info =>{
-        if(info){
+    // warrantsModel.findOne({warrant_number}).then(info =>{
+    //     if(info){
+    //         return res.status(400).json({status: -1, message: `warrant number already exist`, data:[]})
+    //     }
+    //     warrantsModel.findByIdAndUpdate(warrant_id, {status: 1, warrant_number}, {new: true}).then(info => {
+    //         if(!info){
+    //             return res.status(400).json({status: -1, message: `warrant does not exist`, data:[]})
+    //         }
+    //         res.status(200).json({status: 1, message: `warrant updated`, data:info})
+    //     }).catch((err)=>{
+    //         new Error(err.message)
+    //     })
+    // }).catch(err => {
+    //     console.log(err)
+    //     return res.status(500).json({status: -1, message: `unable to complete, try again`, data:[]})
+    // })
+
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const warrantNumberExist = await warrantsModel.findOne({warrant_number}).session(session);
+        const warrantDetails = await warrantsModel.findById(warrant_id).session(session); // GETS THE WARRANT DETAILS
+
+        if (warrantNumberExist) { // return if warrant number already exists
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({status: -1, message: `warrant number already exist`, data:[]})
         }
-        warrantsModel.findByIdAndUpdate(warrant_id, {status: 1, warrant_number}, {new: true}).then(info => {
-            if(!info){
-                return res.status(400).json({status: -1, message: `warrant does not exist`, data:[]})
-            }
-            res.status(200).json({status: 1, message: `warrant updated`, data:info})
-        }).catch((err)=>{
-            new Error(err.message)
-        })
-    }).catch(err => {
-        console.log(err)
+        if (!warrantDetails) { // return if warrant does not exist
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({status: -1, message: `warrant does not exist`, data:[]})
+        }
+
+        await warrantsModel.updateOne(
+            { _id: warrant_id },
+            { $set: {status: 1, warrant_number} }
+        ).session(session);
+
+        await expensesModel.updateMany(
+            { _id: { $in: warrantDetails.expenses_id } },{ $set: { warrant_status: 1, warrant_number } }
+        ).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+        res.status(200).json({status: 1, message: `warrant updated`, data:[]})
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(500).json({status: -1, message: `unable to complete, try again`, data:[]})
-    })
+    }
 }
 
 

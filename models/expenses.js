@@ -49,6 +49,10 @@ let expensesSchema = new SCHEMA({
        type: Number, 
        default: 0
     },
+    warrant_number: {
+       type: String, 
+       default: ''
+    },
     captured_by: {
         type: String,
         required: [true, 'email is required']
