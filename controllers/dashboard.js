@@ -13,7 +13,7 @@ const getDashboardData = async (req, res) => {
       "end_date",
     ]);
     const startDate = "2025-01-01T00:00:00Z"
-    const endDate = "2025-12-30T23:59:59Z"
+    const endDate = "2026-12-30T23:59:59Z"
     const itemsFound = await expensesModel.aggregate([
         { $sort: { budget_type: -1 } },
         {

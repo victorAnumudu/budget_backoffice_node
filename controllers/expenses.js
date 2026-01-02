@@ -8,7 +8,7 @@ const getAllExpenses = async (req, res) => {
         const {page, limit, skip, filterWith} = getFilterParams(req.query, ['economic_code', 'beneficiary_name', 'beneficiary_bank', 'budget_type'])
 
         const totalDocuments = await expensesModel.countDocuments();
-        const expensesFound = await expensesModel.find(filterWith).sort({ date_captured: 1 }).lean().skip(skip).limit(limit)
+        const expensesFound = await expensesModel.find(filterWith).sort({ date_captured: -1 }).lean().skip(skip).limit(limit)
         let dataSent = {
             pvs: expensesFound.map(item => ({expense_uid: item._id.toString(), ...item})),
             pagination: customPagination({page, limit, totalDocuments})
