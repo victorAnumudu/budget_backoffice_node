@@ -1,4 +1,7 @@
 const mongoose = require('mongoose')
+const mdasModel = require('./mdas')
+const economicItemModel = require('./economicItems')
+
 
 const SCHEMA = mongoose.Schema
 
@@ -18,6 +21,8 @@ let expensesSchema = new SCHEMA({
     beneficiary_mda: {
         type: String,
     },
+    mda_uid: { type: mongoose.SchemaTypes.ObjectId, ref: mdasModel },
+    economic_uid: { type: mongoose.SchemaTypes.ObjectId, ref: economicItemModel },
     pv_description: {
         type: String,
     },
@@ -80,5 +85,7 @@ module.exports = expensesModel
 //         net_amount: 990000,
 //         budget_type: 'recurrent',
 //         approval_authority: 'Accountant General',
-//         captured_by: 'admin@admin.com'
+//         captured_by: 'admin@admin.com',
+//         economic_uid: '',
+//         mda_uid: '',
 // }
