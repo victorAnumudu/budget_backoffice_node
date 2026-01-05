@@ -1,3 +1,4 @@
+const { default: mongoose } = require('mongoose');
 const economicItemsModel = require("../models/economicItems");
 
 const {
@@ -45,6 +46,7 @@ const getAllEconomicItems = async (req, res) => {
       "economic_code",
       "beneficiary_name",
       "beneficiary_bank",
+      "org_code",
     ]);
 
     const totalDocuments = await economicItemsModel.countDocuments();
@@ -286,55 +288,125 @@ const deleteEconomicItem = (req, res) => {
 
 //WHAT HAPPENS WHEN USER CHANGES ECONOMIC CODE, ECONOMIC DESC OR MDA ==>> PLEASE LOOK INTO IT LATER
 
-const updateEconomicItem = (req, res) => {
-  // FINDS AN ECONOMIC ITEM BY ITS ID AND UPDATES IT
-  const passedID = req.body.economic_item_uid; // REMOVES
-  const fields = someUpdateFieldsExist(req.body, [
-    "economic_code",
-    "budget_type",
-    "economic_description",
-    "initial_budget",
-    "vired_frm",
-    "vired_to",
-    "supplementary_budget",
-    "year",
-  ]);
-  if (!fields) {
-    return res.status(400).json({ status: 1, message: `No data updated` });
-  }
-  economicItemsModel
-    .findByIdAndUpdate(
-      passedID,
-      [
-        { $set: { ...fields } },
-        {
-          $set: {
-            revised_budget: {
-              $add: [
-                "$vired_to",
-                "$supplementary_budget",
-                "$initial_budget",
-                { $subtract: [0, "$vired_frm"] },
-              ],
+const updateEconomicItem = async(req, res) => {
+  try {    
+    // FINDS AN ECONOMIC ITEM BY ITS ID AND UPDATES IT
+    const passedID = req.body.economic_item_uid; // REMOVES
+    const fields = someUpdateFieldsExist(req.body, [
+      "economic_code",
+      "budget_type",
+      "economic_description",
+      "initial_budget",
+      "vired_frm",
+      "vired_to",
+      "supplementary_budget",
+      "year",
+    ]);
+  
+    if (!fields || !passedID) {
+      return res.status(400).json({ status: -1, message: `No data updated` });
+    }
+    const economicItemExist = await economicItemsModel.findById(passedID); // check if org code already exists in mda table
+    if(!economicItemExist){ // if economic item doesn't exist return
+      return res.status(400).json({ status: -1, message: `No data updated` });
+    }
+    
+    const economicCodeExist = await economicItemsModel.find({economic_code: req?.body?.economic_code}); // check if economic code already exists
+    if (economicCodeExist.length) { // return if new economic code already exists
+      return res.status(400).json({status: -1, message: `the economic code submitted already exist, try a different org code`})
+    }
+
+    if(req?.body?.economic_code == economicItemExist?.economic_code && req?.body?.economic_description == economicItemExist?.economic_description){ // just update if economic_code or economic description didn't change
+      economicItemsModel
+        .findByIdAndUpdate(
+          passedID,
+          [
+            { $set: { ...fields } },
+            {
+              $set: {
+                revised_budget: {
+                  $add: [
+                    "$vired_to",
+                    "$supplementary_budget",
+                    "$initial_budget",
+                    { $subtract: [0, "$vired_frm"] },
+                  ],
+                },
+              },
             },
-          },
-        },
-      ],
-      { new: true }
-    )
-    .then((data) => {
-      if (!data) {
-        return res.status(400).json({ status: 1, message: `No data updated` });
+          ],
+          { new: true }
+        )
+        .then((data) => {
+          if (!data) {
+            return res.status(400).json({ status: 1, message: `No data updated` });
+          }
+          res.status(201).json({
+            status: 1,
+            message: `economic item updated successfully`,
+            data: [data],
+          });
+        })
+        .catch((err) => {
+          res.status(500).json({ status: -1, message: err.message, data: [] });
+        });
+    }else{ // update expenses table too
+      try {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        await economicItemsModel.findByIdAndUpdate(
+          passedID,
+          [
+            { $set: { ...fields } },
+            {
+              $set: {
+                revised_budget: {
+                  $add: [
+                    "$vired_to",
+                    "$supplementary_budget",
+                    "$initial_budget",
+                    { $subtract: [0, "$vired_frm"] },
+                  ],
+                },
+              },
+            },
+          ],
+          { new: true }
+        ).session(session)
+
+        await expensesModel.updateMany(
+            { economic_code: economicItemExist?.economic_code },  
+            [   
+              { 
+                  $set: { economic_description: fields.economic_description}
+              },
+              {
+                $set: {
+                  economic_code: {
+                    $concat: [
+                      { $arrayElemAt: [{ $split: ["$economic_code", "/"] }, 0] },
+                      "/",
+                      req?.body?.economic_code.split('/').slice(1).join('/')
+                    ]
+                  }
+                }
+              }
+            ]
+        ).session(session);
+
+
+        await session.commitTransaction();
+        session.endSession();
+      res.status(200).json({status: 1, message: `economic item updated`, data:[req.body]})
+      } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({status: -1, message: `unable to complete, try again`, data:[]})
       }
-      res.status(201).json({
-        status: 1,
-        message: `economic item updated successfully`,
-        data: [data],
-      });
-    })
-    .catch((err) => {
-      res.status(500).json({ status: -1, message: err.message, data: [] });
-    });
+    }
+  } catch (err) {
+    res.status(500).json({ status: -1, message: err.message, data: [] });
+  }
 };
 
 module.exports = {

@@ -4,10 +4,10 @@ const mdasModel = require('./mdas')
 const SCHEMA = mongoose.Schema
 
 let economicItemsSchema = new SCHEMA({
-    // org_code: {
-    //     type: String,
-    //     required: [true, 'org code name is required'],
-    // },
+    org_code: {
+        type: String,
+        required: [true, 'org code name is required'],
+    },
     economic_code: {
         type: String,
         unique: [true, 'economic code already exists'],
@@ -21,16 +21,11 @@ let economicItemsSchema = new SCHEMA({
         required: [true, 'economic description name is required'],
     },
     mda_uid: { type: mongoose.SchemaTypes.ObjectId, ref: mdasModel },
-    // mda: {
-    //         "$ref" : mdasModel,
-    //         "$id" : ObjectId("5126bc054aed4daf9e2ab772"),
-    //         "$db" : "users",
-    //         "extraField" : "anything"
-    // },
-    // mda: {
-    //     type: String,
-    //     required: [true, 'mda name is required'],
-    // },
+
+    mda_name: {
+        type: String,
+        required: [true, 'mda name is required'],
+    },
     initial_budget: {
         type: Number,
         required: [true, 'budget amount name is required'],
@@ -87,6 +82,7 @@ module.exports = economicItemsModel
 //     budget_type: 'recurrent',
 //     economic_description: 'Local Travels and Transport (Training)',
 //     mda_uid: '',
+//     mda_name: '',
 //     initial_budget: 20550000,
 //     vired_frm: '',
 //     vired_to: '',

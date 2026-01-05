@@ -5,7 +5,7 @@ const { default: getFilterParams, customPagination } = require('../helpers/getFi
 const getAllExpenses = async (req, res) => {
     
     try {
-        const {page, limit, skip, filterWith} = getFilterParams(req.query, ['economic_code', 'beneficiary_name', 'beneficiary_bank', 'budget_type'])
+        const {page, limit, skip, filterWith} = getFilterParams(req.query, ['economic_code', 'beneficiary_name', 'beneficiary_bank', 'budget_type', 'org_code'])
 
         const totalDocuments = await expensesModel.countDocuments();
         const expensesFound = await expensesModel.find(filterWith).sort({ date_captured: -1 }).lean().skip(skip).limit(limit)

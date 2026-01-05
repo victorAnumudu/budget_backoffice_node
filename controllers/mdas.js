@@ -1,7 +1,9 @@
+const { default: mongoose } = require('mongoose');
 const multer = require('multer');
 const xlsx = require('xlsx');
 const mdasModel = require('../models/mdas')
 const expensesModel = require('../models/expenses')
+const economicItemsModel = require('../models/economicItems')
 
 const { default: getFilterParams, customPagination } = require('../helpers/getFilterParams')
 
@@ -145,8 +147,87 @@ const uploadMDAFile = async (req, res) => {
 
 
 
-const updateMDA = () => {
-    //REMEMBER TO UPDATE PV RECORDS, ECONOMIC ITEM ANY TIME MDA DETAILS CHANGES
+const updateMDA = async (req, res) => {
+    const mdaIdToUpdate = req.params.id
+    const updateFields = req.body
+
+    try {
+        const mdaExist = await mdasModel.findById(mdaIdToUpdate)
+        if(mdaExist){
+            //REMEMBER TO UPDATE PV RECORDS, ECONOMIC ITEM ANY TIME MDA DETAILS CHANGES
+            // ALSO BE SURE, IF YOU ARE TO UPDATE ORG CODE, THAT NO SUCH CODE IS EXISTING BEFORE
+            const session = await mongoose.startSession();
+            session.startTransaction();
+
+            try {
+                const orgCodeExist = await mdasModel.find({org_code: updateFields.org_code}).session(session); // check if org code already exists in mda table
+                const expensesList = await expensesModel.find({org_code: updateFields.org_code}).session(session); // check if org code already exists in mda table
+                
+                if (orgCodeExist.length) { // return if new org code already exists
+                    await session.abortTransaction();
+                    session.endSession();
+                    return res.status(400).json({status: -1, message: `the org code submitted already exist for another mda, try a different org code`})
+                }
+                console.log('here1', orgCodeExist)
+                await mdasModel.updateOne(
+                    { _id: mdaIdToUpdate },
+                    { $set: {...updateFields} }
+                ).session(session);
+                console.log('here2')
+                await expensesModel.updateMany(
+                    // { org_code: mdaExist.org_code },{ $set: { org_code: updateFields.org_code, mda_name: updateFields.mda_name, economic_code: '' } }
+                    { org_code: mdaExist.org_code },  
+                    [   
+                        { 
+                            $set: { org_code: updateFields.org_code, mda_name: updateFields.mda_name}
+                        },
+                        {
+                            $set: {
+                                economic_code: {
+                                $replaceOne: {
+                                    input: "$economic_code",
+                                    find: { $arrayElemAt: [{ $split: ["$economic_code", "/"] }, 0] },
+                                    replacement: updateFields.org_code
+                                }
+                                }
+                            }
+                        }
+                    ]
+                ).session(session);
+
+                await economicItemsModel.updateMany(
+                    { org_code: mdaExist.org_code },  
+                    [   
+                        { 
+                            $set: { org_code: updateFields.org_code, mda_name: updateFields.mda_name}
+                        },
+                        {
+                            $set: {
+                                economic_code: {
+                                $replaceOne: {
+                                    input: "$economic_code",
+                                    find: { $arrayElemAt: [{ $split: ["$economic_code", "/"] }, 0] },
+                                    replacement: updateFields.org_code
+                                }
+                                }
+                            }
+                        }
+                    ]
+                ).session(session);
+
+                await session.commitTransaction();
+                session.endSession();
+                res.status(200).json({status: 1, message: `mda updated`, data:[req.body]})
+            } catch (err) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(500).json({status: -1, message: `unable to complete, try again`, data:[]})
+            }
+        }
+    } catch (error) {
+        console.log(error.message)
+        res.status(500).json({status: -1, message: 'an error occured, try again later'})
+    }
 }
 
 

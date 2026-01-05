@@ -18,7 +18,7 @@ let expensesSchema = new SCHEMA({
     economic_description: {
         type: String,
     },
-    beneficiary_mda: {
+    mda_name: {
         type: String,
     },
     mda_uid: { type: mongoose.SchemaTypes.ObjectId, ref: mdasModel },

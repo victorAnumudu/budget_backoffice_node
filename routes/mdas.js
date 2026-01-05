@@ -28,7 +28,7 @@ mdasRoute.post('/delete', deleteMDA)
 
 
 
-// update a expense
+// update an MDA
 mdasRoute.put('/:id', updateMDA)
 
 

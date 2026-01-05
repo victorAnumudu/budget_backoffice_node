@@ -11,12 +11,12 @@ export const requiredFieldsExist = (passedFields = {}, requiredFields = []) => {
 export const someUpdateFieldsExist = (reqBody = {}, updateFields = []) => {
   let someFieldsExist = {};
 
-  if (!reqBody || !updateFields.length) {
+  if (!Object.keys(reqBody).length || !updateFields.length) {
     return false;
   }else {
-     const fieldsExists = updateFields.forEach(field => {
-         if(reqBody[field] && Object.keys(reqBody).includes(field)){
-             return someFieldsExist[field] = reqBody[field]
+     updateFields.forEach(field => {
+         if(Object.keys(reqBody).includes(field)){
+             someFieldsExist[field] = reqBody[field]
          }
      })
      return Object.keys(someFieldsExist).length ? someFieldsExist : false
